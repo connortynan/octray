@@ -8,10 +8,13 @@ uniform mat4 projection;
 uniform mat4 view;
 
 out vec3 color;
+out vec3 fragPos;
 
 void main()
 {
-    gl_Position = projection * view * instanceTransform * vec4(aPos, 1.0);
+    vec4 worldPosition = instanceTransform * vec4(aPos, 1.0);
+    fragPos = vec3(worldPosition);
     
+    gl_Position = projection * view * worldPosition;
     color = instanceColor;
 }

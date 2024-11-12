@@ -3,46 +3,7 @@
 #include <vector>
 #include <cmath>
 
-void OctrayNode::accumulate_ray(const Vec3f &ray_start, const Vec3f &ray_end, std::vector<CubeInstance> &filledInstances, std::vector<CubeInstance> &outlinedInstances)
-{
-    int intersection = intersects(ray_start, ray_end);
-    if (!intersection)
-    {
-        glm::mat4 transform = glm::mat4{1.0f};
-        transform = glm::translate(transform, glm::vec3{center.x, center.y, center.z});
-        transform = glm::scale(transform, glm::vec3{std::pow(0.5f, depth)});
-
-        outlinedInstances.push_back({transform, {1.f, 1.f, 1.f}});
-        return;
-    }
-
-    if (leaf)
-    {
-        if (depth >= max_depth)
-        {
-            glm::mat4 transform = glm::mat4{1.0f};
-            transform = glm::translate(transform, glm::vec3{center.x, center.y, center.z});
-            transform = glm::scale(transform, glm::vec3{std::pow(0.5f, depth)});
-            if (intersection == PASSES_THROUGH)
-            {
-                filledInstances.push_back({transform, {0.f, 1.f, 0.f}});
-            }
-            else if (intersection == END_POINT_INSIDE)
-            {
-                filledInstances.push_back({transform, {1.f, 0.f, 0.f}});
-            }
-            return;
-        }
-        split();
-    }
-    for (OctrayNode *child : children)
-    {
-        if (child)
-        {
-            child->accumulate_ray(ray_start, ray_end, filledInstances, outlinedInstances);
-        }
-    }
-}
+#include <glm/gtc/matrix_transform.hpp>
 
 int OctrayNode::intersects(const Vec3f &ray_start, const Vec3f &ray_end) const
 {
@@ -79,4 +40,54 @@ int OctrayNode::intersects(const Vec3f &ray_start, const Vec3f &ray_end) const
         }
     }
     return PASSES_THROUGH;
+}
+
+void Octray::accumulate_ray(const Vec3f &ray_start, const Vec3f &ray_end, std::vector<CubeInstance> &filledInstances, std::vector<CubeInstance> &outlinedInstances)
+{
+    std::vector<OctrayNode *> stack;
+    stack.push_back(this);
+
+    while (!stack.empty())
+    {
+        OctrayNode *current = stack.back();
+        stack.pop_back();
+
+        int intersection = current->intersects(ray_start, ray_end);
+        if (!intersection)
+        {
+            glm::mat4 transform = glm::mat4{1.0f};
+            transform = glm::translate(transform, glm::vec3{current->center.x, current->center.y, current->center.z});
+            transform = glm::scale(transform, glm::vec3{std::pow(0.5f, current->depth)});
+
+            outlinedInstances.push_back({transform, {1.f, 1.f, 1.f}});
+            continue;
+        }
+
+        if (current->leaf)
+        {
+            if (current->depth >= max_depth)
+            {
+                glm::mat4 transform = glm::mat4{1.0f};
+                transform = glm::translate(transform, glm::vec3{current->center.x, current->center.y, current->center.z});
+                transform = glm::scale(transform, glm::vec3{std::pow(0.5f, current->depth)});
+                if (intersection == PASSES_THROUGH)
+                {
+                    filledInstances.push_back({transform, {0.f, 1.f, 0.f}});
+                }
+                else if (intersection == END_POINT_INSIDE)
+                {
+                    filledInstances.push_back({transform, {1.f, 0.f, 0.f}});
+                }
+                continue;
+            }
+            current->split();
+        }
+        for (OctrayNode *child : current->children)
+        {
+            if (child)
+            {
+                stack.push_back(child);
+            }
+        }
+    }
 }

@@ -7,8 +7,8 @@ template <typename NodeType>
 class BaseOctreeNode
 {
 public:
-    BaseOctreeNode(const Vec3f &_center, const float _size, const size_t _max_depth)
-        : parent(nullptr), center(_center), size(_size), depth(0), max_depth(_max_depth)
+    BaseOctreeNode(const Vec3f &_center, const float _size)
+        : parent(nullptr), center(_center), size(_size), depth(0)
     {
         children.fill(nullptr);
     }
@@ -24,24 +24,15 @@ public:
             }
         }
     }
-    virtual bool split()
-    {
-        if (!leaf || depth >= max_depth)
-        {
-            return false;
-        }
-        split_node();
-        return true;
-    }
 
 protected:
     BaseOctreeNode(const NodeType *_parent, const Vec3f &_center)
-        : parent(_parent), center(_center), size(_parent->size / 2.f), depth(_parent->depth + 1), max_depth(_parent->max_depth)
+        : parent(_parent), center(_center), size(_parent->size / 2.f), depth(_parent->depth + 1)
     {
         children.fill(nullptr);
     }
 
-    void split_node()
+    void split()
     {
         leaf = false;
 
@@ -64,7 +55,6 @@ protected:
     const float size;
 
     const size_t depth;
-    const size_t max_depth;
     const NodeType *parent;
 
     std::array<NodeType *, 8> children;
